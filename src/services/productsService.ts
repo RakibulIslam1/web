@@ -9,13 +9,20 @@ import {
   updateDoc,
   deleteDoc,
   QueryConstraint,
-  CollectionReference,
-  DocumentData,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { Product } from '../types'
 
-const productsCollection = collection(db, 'products') as CollectionReference<Product>
+const productsCollection = collection(db, 'products')
+
+function toDate(value: unknown): Date {
+  if (value instanceof Date) return value
+  if (value && typeof value === 'object' && 'toDate' in value) {
+    const maybeTimestamp = value as { toDate: () => Date }
+    return maybeTimestamp.toDate()
+  }
+  return new Date()
+}
 
 /**
  * Get all active products from Firestore
@@ -25,12 +32,18 @@ export async function getProducts(isActive: boolean = true): Promise<Product[]> 
     const constraints: QueryConstraint[] = [where('isActive', '==', isActive)]
     const q = query(productsCollection, ...constraints)
     const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map((doc) => ({
-      ...doc.data(),
+    return querySnapshot.docs.map((doc) => {
+      const data = doc.data() as Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & {
+        createdAt?: unknown
+        updatedAt?: unknown
+      }
+      return {
+      ...data,
       id: doc.id,
-      createdAt: doc.data().createdAt?.toDate?.() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate?.() || new Date(),
-    }))
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
+    }
+  })
   } catch (error) {
     console.error('Error fetching products:', error)
     return []
@@ -46,12 +59,15 @@ export async function getProduct(id: string): Promise<Product | null> {
     const docSnap = await getDoc(docRef)
 
     if (docSnap.exists()) {
-      const data = docSnap.data()
+      const data = docSnap.data() as Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & {
+        createdAt?: unknown
+        updatedAt?: unknown
+      }
       return {
         ...data,
         id: docSnap.id,
-        createdAt: data.createdAt?.toDate?.() || new Date(),
-        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+        createdAt: toDate(data.createdAt),
+        updatedAt: toDate(data.updatedAt),
       }
     }
     return null

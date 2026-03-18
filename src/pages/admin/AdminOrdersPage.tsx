@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import { Order } from '../types'
-import { getAllOrders, updateOrderStatus } from '../services/ordersService'
-import Navigation from '../components/Navigation'
+import { useAuth } from '../../contexts/AuthContext'
+import { Order } from '../../types'
+import { getAllOrders, updateOrderStatus } from '../../services/ordersService'
+import Navigation from '../../components/Navigation'
 
 /**
  * Admin orders management page

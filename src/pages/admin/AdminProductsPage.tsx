@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import { Product } from '../types'
-import { getProducts, deleteProduct } from '../services/productsService'
-import Navigation from '../components/Navigation'
+import { useAuth } from '../../contexts/AuthContext'
+import { Product } from '../../types'
+import { getProducts, deleteProduct } from '../../services/productsService'
+import Navigation from '../../components/Navigation'
 
 /**
  * Admin products management page

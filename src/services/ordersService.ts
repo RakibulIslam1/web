@@ -11,12 +11,20 @@ import {
   limit,
   orderBy,
   QueryConstraint,
-  CollectionReference,
 } from 'firebase/firestore'
 import { db } from '../firebase'
 import { Order, CartItem } from '../types'
 
-const ordersCollection = collection(db, 'orders') as CollectionReference<Order>
+const ordersCollection = collection(db, 'orders')
+
+function toDate(value: unknown): Date {
+  if (value instanceof Date) return value
+  if (value && typeof value === 'object' && 'toDate' in value) {
+    const maybeTimestamp = value as { toDate: () => Date }
+    return maybeTimestamp.toDate()
+  }
+  return new Date()
+}
 
 /**
  * Get all orders (admin function)
@@ -25,12 +33,18 @@ export async function getAllOrders(): Promise<Order[]> {
   try {
     const q = query(ordersCollection, orderBy('createdAt', 'desc'), limit(1000))
     const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map((doc) => ({
-      ...doc.data(),
+    return querySnapshot.docs.map((doc) => {
+      const data = doc.data() as Omit<Order, 'id' | 'createdAt' | 'updatedAt'> & {
+        createdAt?: unknown
+        updatedAt?: unknown
+      }
+      return {
+      ...data,
       id: doc.id,
-      createdAt: doc.data().createdAt?.toDate?.() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate?.() || new Date(),
-    }))
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
+    }
+  })
   } catch (error) {
     console.error('Error fetching orders:', error)
     return []
@@ -48,12 +62,18 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
     ]
     const q = query(ordersCollection, ...constraints)
     const querySnapshot = await getDocs(q)
-    return querySnapshot.docs.map((doc) => ({
-      ...doc.data(),
+    return querySnapshot.docs.map((doc) => {
+      const data = doc.data() as Omit<Order, 'id' | 'createdAt' | 'updatedAt'> & {
+        createdAt?: unknown
+        updatedAt?: unknown
+      }
+      return {
+      ...data,
       id: doc.id,
-      createdAt: doc.data().createdAt?.toDate?.() || new Date(),
-      updatedAt: doc.data().updatedAt?.toDate?.() || new Date(),
-    }))
+      createdAt: toDate(data.createdAt),
+      updatedAt: toDate(data.updatedAt),
+    }
+  })
   } catch (error) {
     console.error('Error fetching user orders:', error)
     return []
@@ -69,12 +89,15 @@ export async function getOrder(id: string): Promise<Order | null> {
     const docSnap = await getDoc(docRef)
 
     if (docSnap.exists()) {
-      const data = docSnap.data()
+      const data = docSnap.data() as Omit<Order, 'id' | 'createdAt' | 'updatedAt'> & {
+        createdAt?: unknown
+        updatedAt?: unknown
+      }
       return {
         ...data,
         id: docSnap.id,
-        createdAt: data.createdAt?.toDate?.() || new Date(),
-        updatedAt: data.updatedAt?.toDate?.() || new Date(),
+        createdAt: toDate(data.createdAt),
+        updatedAt: toDate(data.updatedAt),
       }
     }
     return null

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
-import { Product, Variation } from '../types'
-import { getProduct, createProduct, updateProduct } from '../services/productsService'
-import { uploadProductImage } from '../services/storageService'
-import Navigation from '../components/Navigation'
+import { useAuth } from '../../contexts/AuthContext'
+import { Product, Variation } from '../../types'
+import { getProduct, createProduct, updateProduct } from '../../services/productsService'
+import { uploadProductImage } from '../../services/storageService'
+import Navigation from '../../components/Navigation'
 
 /**
  * Admin product form for creating/editing products
@@ -104,7 +104,7 @@ export const AdminProductFormPage: React.FC = () => {
     if (field === 'type') {
       newVariations[index].type = value
     } else if (field === 'options') {
-      newVariations[index].options = value.split(',').map((opt) => opt.trim())
+      newVariations[index].options = value.split(',').map((opt: string) => opt.trim())
     }
 
     setProduct((prev) => ({
