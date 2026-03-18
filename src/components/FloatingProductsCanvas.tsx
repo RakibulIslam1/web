@@ -50,10 +50,15 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
 
   const createFloatingProduct = (product: Product, index?: number, total?: number): FloatingProduct => {
     const center = getCenterPosition()
-    const angle =
-      typeof index === 'number' && typeof total === 'number' && total > 0
-        ? (index / total) * Math.PI * 2 + (Math.random() - 0.5) * 0.35
-        : Math.random() * Math.PI * 2
+    // Always use index-based distribution; if not provided, generate one based on product ID hash
+    let angle: number
+    if (typeof index === 'number' && typeof total === 'number' && total > 0) {
+      angle = (index / total) * Math.PI * 2 + (Math.random() - 0.5) * 0.35
+    } else {
+      // Fallback: use product ID to generate consistent but unique angle for recycled products
+      const idHash = product.id.charCodeAt(0) + product.id.charCodeAt(Math.min(1, product.id.length - 1))
+      angle = ((idHash % 12) / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.35
+    }
     const directionX = Math.cos(angle)
     const directionY = Math.sin(angle)
 
@@ -91,73 +96,74 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
   useEffect(() => {
     const animate = () => {
       setFloatingProducts((prevProducts) =>
-        prevProducts.map((obj) => {
-          if (isPausedRef.current) return obj
+        prevProducts
+          .map((obj, idx) => {
+            if (isPausedRef.current) return obj
 
-          let newScale = obj.scale
-          let newOpacity = obj.opacity
-          let newX = obj.x
-          let newY = obj.y
-          let newTravel = obj.travel
-          let newAge = obj.age + 1
+            let newScale = obj.scale
+            let newOpacity = obj.opacity
+            let newX = obj.x
+            let newY = obj.y
+            let newTravel = obj.travel
+            let newAge = obj.age + 1
 
-          // Auto-zoom slowly; scroll increases speed proportionally
-          const speedBoost = Math.max(0, scrollSpeedRef.current)
-          const zoomSpeed = obj.velocityZ * (1 + speedBoost * 2.6)
-          const moveSpeed = 0.9 + speedBoost * 3.6
+            // Auto-zoom slowly; scroll increases speed proportionally
+            const speedBoost = Math.max(0, scrollSpeedRef.current)
+            const zoomSpeed = obj.velocityZ * (1 + speedBoost * 2.6)
+            const moveSpeed = 0.9 + speedBoost * 3.6
 
-          newScale += zoomSpeed * 0.9
+            newScale += zoomSpeed * 0.9
 
-          // Hold product at center/back briefly before launch to avoid top-biased feel and reduce crowding
-          if (newAge <= obj.launchDelay) {
+            // Hold product at center/back briefly before launch to avoid top-biased feel and reduce crowding
+            if (newAge <= obj.launchDelay) {
+              const center = getCenterPosition()
+              return {
+                ...obj,
+                x: center.x,
+                y: center.y,
+                scale: newScale,
+                opacity: Math.min(0.45, 0.16 + newAge * 0.012),
+                age: newAge,
+              }
+            }
+
+            // Grow depth from center, then accelerate outward with scroll
+            newTravel += moveSpeed * (0.8 + newScale * 1.2)
+
             const center = getCenterPosition()
+            newX = center.x + obj.directionX * newTravel
+            newY = center.y + obj.directionY * newTravel
+
+            const edgeDistanceX = Math.min(newX + PRODUCT_SIZE, window.innerWidth - newX)
+            const edgeDistanceY = Math.min(newY + PRODUCT_SIZE, window.innerHeight - newY)
+            const edgeDistance = Math.min(edgeDistanceX, edgeDistanceY)
+
+            // Fade in from center-back, then fade as leaving frame
+            const fadeIn = Math.min(1, newTravel / 110)
+            const fadeOut = Math.max(0.2, Math.min(1, edgeDistance / 220))
+            newOpacity = Math.min(fadeIn, fadeOut)
+
+            const outOfFrame =
+              newX > window.innerWidth + PRODUCT_SIZE ||
+              newX < -PRODUCT_SIZE * 2 ||
+              newY > window.innerHeight + PRODUCT_SIZE ||
+              newY < -PRODUCT_SIZE * 2
+
+            // Reset only after object exits frame, maintaining index-based distribution
+            if (outOfFrame) {
+              return createFloatingProduct(obj.product, idx, prevProducts.length)
+            }
+
             return {
               ...obj,
-              x: center.x,
-              y: center.y,
+              x: newX,
+              y: newY,
               scale: newScale,
-              opacity: Math.min(0.45, 0.16 + newAge * 0.012),
+              opacity: newOpacity,
+              travel: newTravel,
               age: newAge,
             }
-          }
-
-          // Grow depth from center, then accelerate outward with scroll
-          newTravel += moveSpeed * (0.8 + newScale * 1.2)
-
-          const center = getCenterPosition()
-          newX = center.x + obj.directionX * newTravel
-          newY = center.y + obj.directionY * newTravel
-
-          const edgeDistanceX = Math.min(newX + PRODUCT_SIZE, window.innerWidth - newX)
-          const edgeDistanceY = Math.min(newY + PRODUCT_SIZE, window.innerHeight - newY)
-          const edgeDistance = Math.min(edgeDistanceX, edgeDistanceY)
-
-          // Fade in from center-back, then fade as leaving frame
-          const fadeIn = Math.min(1, newTravel / 110)
-          const fadeOut = Math.max(0.2, Math.min(1, edgeDistance / 220))
-          newOpacity = Math.min(fadeIn, fadeOut)
-
-          const outOfFrame =
-            newX > window.innerWidth + PRODUCT_SIZE ||
-            newX < -PRODUCT_SIZE * 2 ||
-            newY > window.innerHeight + PRODUCT_SIZE ||
-            newY < -PRODUCT_SIZE * 2
-
-          // Reset only after object exits frame
-          if (outOfFrame) {
-            return createFloatingProduct(obj.product)
-          }
-
-          return {
-            ...obj,
-            x: newX,
-            y: newY,
-            scale: newScale,
-            opacity: newOpacity,
-            travel: newTravel,
-            age: newAge,
-          }
-        })
+          })
       )
 
       // Gradually decrease scroll speed
