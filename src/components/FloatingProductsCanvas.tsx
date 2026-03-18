@@ -62,7 +62,9 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
     const directionX = Math.cos(angle)
     const directionY = Math.sin(angle)
     // Deterministic delay per slot keeps launch staggering stable across infinite loops.
-    const launchDelay = 10 + ((slotIndex * 11 + cycle * 7) % 70)
+    // Use much shorter delay after first cycle so the loop transition has no visible gap.
+    const launchDelay =
+      cycle === 0 ? 10 + ((slotIndex * 11 + cycle * 7) % 70) : 2 + ((slotIndex * 7 + cycle * 5) % 18)
 
     return {
       id: `${product.id}-${slotIndex}-${cycle}`,
@@ -148,10 +150,10 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
             newOpacity = Math.min(fadeIn, fadeOut)
 
             const outOfFrame =
-              newX > window.innerWidth + PRODUCT_SIZE ||
-              newX < -PRODUCT_SIZE * 2 ||
-              newY > window.innerHeight + PRODUCT_SIZE ||
-              newY < -PRODUCT_SIZE * 2
+              newX > window.innerWidth + PRODUCT_SIZE * 0.25 ||
+              newX < -PRODUCT_SIZE * 1.25 ||
+              newY > window.innerHeight + PRODUCT_SIZE * 0.25 ||
+              newY < -PRODUCT_SIZE * 1.25
 
             // Reset only after object exits frame, maintaining index-based distribution
             if (outOfFrame) {
