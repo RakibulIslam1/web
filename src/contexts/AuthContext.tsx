@@ -57,7 +57,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signup,
     login,
     logout,
-    isAdmin: currentUser ? isAdminUser(currentUser.email) : false,
+    isAdmin: currentUser ? currentUser.role === 'admin' || isAdminUser(currentUser.email) : false,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

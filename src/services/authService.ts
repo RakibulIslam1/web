@@ -3,7 +3,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, limit, query, setDoc, updateDoc, where } from 'firebase/firestore'
 import { auth, db } from '../firebase'
 import { User } from '../types'
 
@@ -37,10 +37,73 @@ export async function createUserDoc(uid: string, email: string): Promise<void> {
       email,
       role: isAdminUser(email) ? 'admin' : 'customer',
       createdAt: new Date(),
+      updatedAt: new Date(),
     })
   } catch (error) {
     console.error('Error creating user document:', error)
     throw error
+  }
+}
+
+/**
+ * Get all users for admin management
+ */
+export async function getAllUsers(): Promise<User[]> {
+  try {
+    const usersRef = collection(getDbOrThrow(), 'users')
+    const snapshot = await getDocs(usersRef)
+
+    return snapshot.docs
+      .map((userDoc) => {
+        const data = userDoc.data()
+        return {
+          uid: data.uid,
+          email: data.email,
+          role: data.role || 'customer',
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+        } as User
+      })
+      .sort((a, b) => a.email.localeCompare(b.email))
+  } catch (error) {
+    console.error('Error fetching users:', error)
+    return []
+  }
+}
+
+/**
+ * Update user role by email
+ */
+export async function updateUserRoleByEmail(
+  email: string,
+  role: 'admin' | 'customer'
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!normalizedEmail) {
+      return { success: false, message: 'Email is required' }
+    }
+
+    const usersRef = collection(getDbOrThrow(), 'users')
+    const userQuery = query(usersRef, where('email', '==', normalizedEmail), limit(1))
+    const userSnapshot = await getDocs(userQuery)
+
+    if (userSnapshot.empty) {
+      return {
+        success: false,
+        message: 'User not found. Ask the user to sign up first, then promote them.',
+      }
+    }
+
+    const userDocRef = userSnapshot.docs[0].ref
+    await updateDoc(userDocRef, {
+      role,
+      updatedAt: new Date(),
+    })
+
+    return { success: true, message: `User role updated to ${role}` }
+  } catch (error) {
+    console.error('Error updating user role:', error)
+    return { success: false, message: 'Failed to update role. Check Firestore rules.' }
   }
 }
 
