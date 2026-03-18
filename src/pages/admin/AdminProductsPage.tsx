@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
 import { Product } from '../../types'
 import { getProducts, deleteProduct } from '../../services/productsService'
 import Navigation from '../../components/Navigation'
@@ -9,17 +8,10 @@ import Navigation from '../../components/Navigation'
  * Admin products management page
  */
 export const AdminProductsPage: React.FC = () => {
-  const { isAdmin } = useAuth()
   const navigate = useNavigate()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [deleting, setDeleting] = useState<string | null>(null)
-
-  // Redirect if not admin
-  if (!isAdmin) {
-    navigate('/')
-    return null
-  }
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -126,7 +118,7 @@ export const AdminProductsPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-3 text-right space-x-2">
                       <button
-                        onClick={() => navigate(`/admin/products/${product.id}/edit`)}
+                        onClick={() => navigate(`/admin/products/${product.id}`)}
                         className="text-blue-400 hover:text-blue-300 transition text-sm font-semibold"
                       >
                         Edit

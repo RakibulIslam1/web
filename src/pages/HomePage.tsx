@@ -70,7 +70,7 @@ export const HomePage: React.FC = () => {
         <Navigation />
         <div className="w-full h-full flex items-center justify-center">
           <div className="text-center">
-            <div className="text-4xl font-bold text-white mb-4">GUFRAM</div>
+            <div className="text-4xl font-bold text-white mb-4">NIOR THREAD</div>
             <div className="text-gray-400">Loading collection...</div>
           </div>
         </div>
@@ -84,7 +84,7 @@ export const HomePage: React.FC = () => {
         <Navigation />
         <div className="w-full h-full flex items-center justify-center">
           <div className="text-center max-w-2xl">
-            <div className="text-4xl font-bold text-white mb-4">GUFRAM</div>
+            <div className="text-4xl font-bold text-white mb-4">NIOR THREAD</div>
             <div className="text-yellow-300 mb-3">Firebase is not configured on this deployment.</div>
             <div className="text-gray-400 text-sm break-words">{firebaseConfigError}</div>
           </div>
@@ -99,7 +99,7 @@ export const HomePage: React.FC = () => {
         <Navigation />
         <div className="w-full h-full flex items-center justify-center">
           <div className="text-center max-w-2xl">
-            <div className="text-4xl font-bold text-white mb-4">GUFRAM</div>
+            <div className="text-4xl font-bold text-white mb-4">NIOR THREAD</div>
             <div className="text-gray-300 mb-3">No products available yet.</div>
             <div className="text-gray-500 text-sm mb-8">
               Sign in to access admin tools, or sign up as a customer to use cart and checkout.

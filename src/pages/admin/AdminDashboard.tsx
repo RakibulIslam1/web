@@ -1,21 +1,11 @@
 import React from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
+import { Link } from 'react-router-dom'
 import Navigation from '../../components/Navigation'
 
 /**
  * Admin dashboard main page
  */
 export const AdminDashboard: React.FC = () => {
-  const { currentUser, isAdmin } = useAuth()
-  const navigate = useNavigate()
-
-  // Redirect if not admin
-  if (!isAdmin || !currentUser) {
-    navigate('/')
-    return null
-  }
-
   return (
     <div className="w-full min-h-screen bg-dark">
       <Navigation />

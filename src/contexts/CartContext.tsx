@@ -12,7 +12,7 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-const STORAGE_KEY = 'gufram_cart'
+const STORAGE_KEY = 'nior_thread_cart'
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([])

@@ -49,7 +49,7 @@ export const AuthPage: React.FC = () => {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">GUFRAM</h1>
+          <h1 className="text-4xl font-bold text-white mb-2">NIOR THREAD</h1>
           <p className="text-gray-400">{isSignUp ? 'Create Account' : 'Sign In'}</p>
         </div>
 

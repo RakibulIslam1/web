@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
 import { Product, Variation } from '../../types'
 import { getProduct, createProduct, updateProduct } from '../../services/productsService'
 import Navigation from '../../components/Navigation'
@@ -10,7 +9,6 @@ import Navigation from '../../components/Navigation'
  */
 export const AdminProductFormPage: React.FC = () => {
   const { productId } = useParams<{ productId: string }>()
-  const { isAdmin } = useAuth()
   const navigate = useNavigate()
 
   const isEditMode = !!productId && productId !== 'new'
@@ -29,12 +27,6 @@ export const AdminProductFormPage: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string>('')
   const [loading, setLoading] = useState(isEditMode)
   const [saving, setSaving] = useState(false)
-
-  // Redirect if not admin
-  if (!isAdmin) {
-    navigate('/')
-    return null
-  }
 
   // Load product if editing
   useEffect(() => {

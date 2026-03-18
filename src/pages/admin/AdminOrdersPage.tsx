@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../../contexts/AuthContext'
 import { Order } from '../../types'
 import { getAllOrders, updateOrderStatus } from '../../services/ordersService'
 import Navigation from '../../components/Navigation'
@@ -9,17 +8,10 @@ import Navigation from '../../components/Navigation'
  * Admin orders management page
  */
 export const AdminOrdersPage: React.FC = () => {
-  const { isAdmin } = useAuth()
   const navigate = useNavigate()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
-
-  // Redirect if not admin
-  if (!isAdmin) {
-    navigate('/')
-    return null
-  }
 
   useEffect(() => {
     const loadOrders = async () => {

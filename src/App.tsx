@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { CartProvider } from './contexts/CartContext'
@@ -77,6 +77,14 @@ function App() {
             />
             <Route
               path="/admin/products/:productId"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminProductFormPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/products/:productId/edit"
               element={
                 <ProtectedRoute requiredRole="admin">
                   <AdminProductFormPage />

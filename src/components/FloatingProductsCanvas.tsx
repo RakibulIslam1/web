@@ -9,6 +9,8 @@ interface FloatingProduct {
   opacity: number
   velocityZ: number
   baseScale: number
+  driftX: number
+  driftY: number
   product: Product
 }
 
@@ -27,6 +29,7 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
   onProductClick,
   onProductHover,
 }) => {
+  const PRODUCT_SIZE = 192
   const containerRef = useRef<HTMLDivElement>(null)
   const [floatingProducts, setFloatingProducts] = useState<FloatingProduct[]>([])
   const [scrollSpeed, setScrollSpeed] = useState(0)
@@ -34,20 +37,35 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
   const animationFrameRef = useRef<number>()
   const [hoveredProductId, setHoveredProductId] = useState<string | null>(null)
 
-  // Initialize floating products with random positions
+  const getCenterPosition = () => ({
+    x: window.innerWidth / 2 - PRODUCT_SIZE / 2,
+    y: window.innerHeight / 2 - PRODUCT_SIZE / 2,
+  })
+
+  const createFloatingProduct = (product: Product): FloatingProduct => {
+    const center = getCenterPosition()
+    const angle = Math.random() * Math.PI * 2
+    const driftMagnitude = 0.8 + Math.random() * 0.9
+
+    return {
+      id: product.id,
+      x: center.x,
+      y: center.y,
+      scale: 0.18 + Math.random() * 0.08,
+      opacity: 1,
+      velocityZ: 0.004 + Math.random() * 0.004,
+      baseScale: 0.18 + Math.random() * 0.08,
+      driftX: Math.cos(angle) * driftMagnitude,
+      driftY: Math.sin(angle) * driftMagnitude,
+      product,
+    }
+  }
+
+  // Initialize floating products at center
   useEffect(() => {
     if (products.length === 0) return
 
-    const initialized = products.map((product) => ({
-      id: product.id,
-      x: Math.random() * (window.innerWidth - 200),
-      y: Math.random() * (window.innerHeight - 200),
-      scale: Math.random() * 0.3 + 0.2, // 0.2 - 0.5
-      opacity: 1,
-      velocityZ: 0.015 + Math.random() * 0.01, // Base zoom speed
-      baseScale: Math.random() * 0.3 + 0.2,
-      product,
-    }))
+    const initialized = products.map((product) => createFloatingProduct(product))
 
     setFloatingProducts(initialized)
   }, [products])
@@ -59,27 +77,38 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
         prevProducts.map((obj) => {
           let newScale = obj.scale
           let newOpacity = obj.opacity
+          let newX = obj.x
+          let newY = obj.y
 
-          // Adjust zoom speed based on scroll input
-          const zoomSpeed = obj.velocityZ * (1 + scrollSpeedRef.current * 0.5)
+          // Auto-zoom slowly; scroll increases speed proportionally
+          const speedBoost = Math.max(0, scrollSpeedRef.current)
+          const zoomSpeed = obj.velocityZ * (1 + speedBoost * 2.6)
+          const moveSpeed = 0.85 + speedBoost * 3.5
+
           newScale += zoomSpeed
+          newX += obj.driftX * moveSpeed
+          newY += obj.driftY * moveSpeed
 
-          // Fade out as object zooms in
-          newOpacity = Math.max(0, 1 - (newScale - obj.baseScale) / 2)
+          const edgeDistanceX = Math.min(newX + PRODUCT_SIZE, window.innerWidth - newX)
+          const edgeDistanceY = Math.min(newY + PRODUCT_SIZE, window.innerHeight - newY)
+          const edgeDistance = Math.min(edgeDistanceX, edgeDistanceY)
+          newOpacity = Math.max(0.35, Math.min(1, edgeDistance / 220))
 
-          // Reset if fully zoomed in / faded out
-          if (newScale > obj.baseScale + 2 || newOpacity <= 0) {
-            return {
-              ...obj,
-              x: Math.random() * (window.innerWidth - 200),
-              y: Math.random() * (window.innerHeight - 200),
-              scale: obj.baseScale,
-              opacity: 1,
-            }
+          const outOfFrame =
+            newX > window.innerWidth + PRODUCT_SIZE ||
+            newX < -PRODUCT_SIZE * 2 ||
+            newY > window.innerHeight + PRODUCT_SIZE ||
+            newY < -PRODUCT_SIZE * 2
+
+          // Reset only after object exits frame
+          if (outOfFrame) {
+            return createFloatingProduct(obj.product)
           }
 
           return {
             ...obj,
+            x: newX,
+            y: newY,
             scale: newScale,
             opacity: newOpacity,
           }
@@ -87,7 +116,8 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
       )
 
       // Gradually decrease scroll speed
-      scrollSpeedRef.current *= 0.95
+      scrollSpeedRef.current *= 0.94
+      if (scrollSpeedRef.current < 0.01) scrollSpeedRef.current = 0
 
       animationFrameRef.current = requestAnimationFrame(animate)
     }
@@ -101,11 +131,12 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
     }
   }, [])
 
-  // Handle scroll wheel for zoom speed
+  // Handle scroll wheel for zoom speed boost
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault()
-    // Positive wheel delta = scrolling down = faster zoom in
-    scrollSpeedRef.current = Math.max(-2, Math.min(2, e.deltaY * 0.001))
+
+    // Accumulate positive scroll for acceleration and allow upward scroll to reduce speed
+    scrollSpeedRef.current = Math.max(0, Math.min(6, scrollSpeedRef.current + e.deltaY * 0.006))
     setScrollSpeed(scrollSpeedRef.current)
   }
 
