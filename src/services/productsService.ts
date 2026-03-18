@@ -34,9 +34,10 @@ function toDate(value: unknown): Date {
 /**
  * Get all active products from Firestore
  */
-export async function getProducts(isActive: boolean = true): Promise<Product[]> {
+export async function getProducts(isActive?: boolean): Promise<Product[]> {
   try {
-    const constraints: QueryConstraint[] = [where('isActive', '==', isActive)]
+    const constraints: QueryConstraint[] =
+      typeof isActive === 'boolean' ? [where('isActive', '==', isActive)] : []
     const q = query(productsCollection(), ...constraints)
     const querySnapshot = await getDocs(q)
     return querySnapshot.docs.map((doc) => {

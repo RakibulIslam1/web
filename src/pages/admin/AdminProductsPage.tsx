@@ -17,7 +17,7 @@ export const AdminProductsPage: React.FC = () => {
     const loadProducts = async () => {
       try {
         // Load all products (both active and inactive)
-        const data = await getProducts()
+        const data = await getProducts(undefined)
         setProducts(data)
       } catch (error) {
         console.error('Error loading products:', error)

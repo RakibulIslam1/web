@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Product, Variation } from '../../types'
-import { getProduct, createProduct, updateProduct } from '../../services/productsService'
+import { getProduct, createProduct, updateProduct, deleteProduct } from '../../services/productsService'
+import { uploadProductImage } from '../../services/storageService'
 import Navigation from '../../components/Navigation'
 
 /**
@@ -27,6 +28,8 @@ export const AdminProductFormPage: React.FC = () => {
   const [imagePreview, setImagePreview] = useState<string>('')
   const [loading, setLoading] = useState(isEditMode)
   const [saving, setSaving] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [deletingProduct, setDeletingProduct] = useState(false)
 
   // Load product if editing
   useEffect(() => {
@@ -59,6 +62,28 @@ export const AdminProductFormPage: React.FC = () => {
 
     if (name === 'imageUrl') {
       setImagePreview(value)
+    }
+  }
+
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+    try {
+      const uploadId = isEditMode ? productId! : `new-${Date.now()}`
+      const imageUrl = await uploadProductImage(file, uploadId)
+      setProduct((prev) => ({
+        ...prev,
+        imageUrl,
+      }))
+      setImagePreview(imageUrl)
+    } catch (error) {
+      console.error('Error uploading image:', error)
+      alert('Failed to upload image. Check Firebase Storage rules/configuration.')
+    } finally {
+      setUploadingImage(false)
+      e.target.value = ''
     }
   }
 
@@ -119,6 +144,22 @@ export const AdminProductFormPage: React.FC = () => {
     }
   }
 
+  const handleDeleteProduct = async () => {
+    if (!isEditMode || !productId) return
+    if (!confirm('Delete this product permanently?')) return
+
+    setDeletingProduct(true)
+    try {
+      await deleteProduct(productId)
+      navigate('/admin/products')
+    } catch (error) {
+      console.error('Error deleting product:', error)
+      alert('Failed to delete product')
+    } finally {
+      setDeletingProduct(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="w-full min-h-screen bg-dark pt-24">
@@ -152,6 +193,17 @@ export const AdminProductFormPage: React.FC = () => {
                 )}
               </div>
               <div className="flex-1">
+                <label className="block text-xs font-semibold text-gray-400 mb-2">Upload image file</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageFileChange}
+                  disabled={uploadingImage || saving}
+                  className="w-full mb-3 px-4 py-2 bg-dark border border-gray-600 rounded text-gray-300 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-white file:text-black file:font-semibold"
+                />
+                {uploadingImage && <p className="text-xs text-yellow-300 mb-3">Uploading image...</p>}
+
+                <label className="block text-xs font-semibold text-gray-400 mb-2">Or paste image URL</label>
                 <input
                   type="url"
                   name="imageUrl"
@@ -160,7 +212,7 @@ export const AdminProductFormPage: React.FC = () => {
                   placeholder="https://example.com/product-image.jpg"
                   className="w-full px-4 py-2 bg-dark border border-gray-600 rounded text-white focus:outline-none focus:border-white transition"
                 />
-                <p className="text-xs text-gray-500 mt-2">Use a public image URL (Firestore only, no Storage upload)</p>
+                <p className="text-xs text-gray-500 mt-2">You can upload from your device or use a direct URL.</p>
               </div>
             </div>
           </div>
@@ -321,6 +373,16 @@ export const AdminProductFormPage: React.FC = () => {
             >
               Cancel
             </button>
+            {isEditMode && (
+              <button
+                type="button"
+                onClick={handleDeleteProduct}
+                disabled={deletingProduct || saving}
+                className="flex-1 border border-red-500 text-red-300 font-semibold py-3 rounded hover:bg-red-500/10 disabled:opacity-50 transition"
+              >
+                {deletingProduct ? 'Deleting...' : 'Delete Product'}
+              </button>
+            )}
           </div>
         </form>
       </div>
