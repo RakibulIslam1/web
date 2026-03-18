@@ -4,6 +4,7 @@ node_modules/
 dist/
 dist-ssr/
 .tsbuild/
+tsconfig.tsbuildinfo
 *.local
 .DS_Store
 .vscode/*
