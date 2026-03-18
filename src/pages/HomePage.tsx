@@ -138,11 +138,14 @@ export const HomePage: React.FC = () => {
   return (
     <div className="relative w-full h-screen overflow-hidden">
       <Navigation />
-      <FloatingProductsCanvas
-        products={products}
-        onProductClick={handleProductClick}
-        onProductHover={handleProductHover}
-      />
+      <div className={isModalOpen ? 'blur-sm transition duration-300' : 'transition duration-300'}>
+        <FloatingProductsCanvas
+          products={products}
+          onProductClick={handleProductClick}
+          onProductHover={handleProductHover}
+          isPaused={isModalOpen}
+        />
+      </div>
 
       {/* Hovered Product Name Display (optional, can be in canvas) */}
       {hoveredProduct && (

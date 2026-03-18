@@ -12,6 +12,8 @@ interface FloatingProduct {
   directionX: number
   directionY: number
   travel: number
+  age: number
+  launchDelay: number
   product: Product
 }
 
@@ -19,6 +21,7 @@ interface FloatingProductsCanvasProps {
   products: Product[]
   onProductClick: (product: Product) => void
   onProductHover?: (product: Product | null) => void
+  isPaused?: boolean
 }
 
 /**
@@ -29,12 +32,14 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
   products,
   onProductClick,
   onProductHover,
+  isPaused = false,
 }) => {
   const PRODUCT_SIZE = 192
   const containerRef = useRef<HTMLDivElement>(null)
   const [floatingProducts, setFloatingProducts] = useState<FloatingProduct[]>([])
   const [scrollSpeed, setScrollSpeed] = useState(0)
   const scrollSpeedRef = useRef(0)
+  const isPausedRef = useRef(isPaused)
   const animationFrameRef = useRef<number>()
   const [hoveredProductId, setHoveredProductId] = useState<string | null>(null)
 
@@ -43,9 +48,12 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
     y: window.innerHeight / 2 - PRODUCT_SIZE / 2,
   })
 
-  const createFloatingProduct = (product: Product): FloatingProduct => {
+  const createFloatingProduct = (product: Product, index?: number, total?: number): FloatingProduct => {
     const center = getCenterPosition()
-    const angle = Math.random() * Math.PI * 2
+    const angle =
+      typeof index === 'number' && typeof total === 'number' && total > 0
+        ? (index / total) * Math.PI * 2 + (Math.random() - 0.5) * 0.35
+        : Math.random() * Math.PI * 2
     const directionX = Math.cos(angle)
     const directionY = Math.sin(angle)
 
@@ -60,6 +68,8 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
       directionX,
       directionY,
       travel: 0,
+      age: 0,
+      launchDelay: 10 + Math.floor(Math.random() * 70),
       product,
     }
   }
@@ -68,28 +78,48 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
   useEffect(() => {
     if (products.length === 0) return
 
-    const initialized = products.map((product) => createFloatingProduct(product))
+    const initialized = products.map((product, index) => createFloatingProduct(product, index, products.length))
 
     setFloatingProducts(initialized)
   }, [products])
 
   // Animation loop
   useEffect(() => {
+    isPausedRef.current = isPaused
+  }, [isPaused])
+
+  useEffect(() => {
     const animate = () => {
       setFloatingProducts((prevProducts) =>
         prevProducts.map((obj) => {
+          if (isPausedRef.current) return obj
+
           let newScale = obj.scale
           let newOpacity = obj.opacity
           let newX = obj.x
           let newY = obj.y
           let newTravel = obj.travel
+          let newAge = obj.age + 1
 
           // Auto-zoom slowly; scroll increases speed proportionally
           const speedBoost = Math.max(0, scrollSpeedRef.current)
           const zoomSpeed = obj.velocityZ * (1 + speedBoost * 2.6)
           const moveSpeed = 0.9 + speedBoost * 3.6
 
-          newScale += zoomSpeed
+          newScale += zoomSpeed * 0.9
+
+          // Hold product at center/back briefly before launch to avoid top-biased feel and reduce crowding
+          if (newAge <= obj.launchDelay) {
+            const center = getCenterPosition()
+            return {
+              ...obj,
+              x: center.x,
+              y: center.y,
+              scale: newScale,
+              opacity: Math.min(0.45, 0.16 + newAge * 0.012),
+              age: newAge,
+            }
+          }
 
           // Grow depth from center, then accelerate outward with scroll
           newTravel += moveSpeed * (0.8 + newScale * 1.2)
@@ -125,13 +155,16 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
             scale: newScale,
             opacity: newOpacity,
             travel: newTravel,
+            age: newAge,
           }
         })
       )
 
       // Gradually decrease scroll speed
-      scrollSpeedRef.current *= 0.94
-      if (scrollSpeedRef.current < 0.01) scrollSpeedRef.current = 0
+      if (!isPausedRef.current) {
+        scrollSpeedRef.current *= 0.94
+        if (scrollSpeedRef.current < 0.01) scrollSpeedRef.current = 0
+      }
 
       animationFrameRef.current = requestAnimationFrame(animate)
     }
@@ -148,6 +181,8 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
   // Handle scroll wheel for zoom speed boost
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault()
+
+    if (isPausedRef.current) return
 
     // Accumulate positive scroll for acceleration and allow upward scroll to reduce speed
     scrollSpeedRef.current = Math.max(0, Math.min(6, scrollSpeedRef.current + e.deltaY * 0.006))
