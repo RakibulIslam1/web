@@ -12,6 +12,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Listen for auth state changes
   useEffect(() => {
+    if (!auth) {
+      console.error('Firebase Auth is not configured. Check Vercel environment variables.')
+      setCurrentUser(null)
+      setLoading(false)
+      return
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       try {
         if (firebaseUser) {

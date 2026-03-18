@@ -13,7 +13,14 @@ import {
 import { db } from '../firebase'
 import { Product } from '../types'
 
-const productsCollection = collection(db, 'products')
+function getDbOrThrow() {
+  if (!db) throw new Error('Firebase Firestore is not configured')
+  return db
+}
+
+function productsCollection() {
+  return collection(getDbOrThrow(), 'products')
+}
 
 function toDate(value: unknown): Date {
   if (value instanceof Date) return value
@@ -30,7 +37,7 @@ function toDate(value: unknown): Date {
 export async function getProducts(isActive: boolean = true): Promise<Product[]> {
   try {
     const constraints: QueryConstraint[] = [where('isActive', '==', isActive)]
-    const q = query(productsCollection, ...constraints)
+    const q = query(productsCollection(), ...constraints)
     const querySnapshot = await getDocs(q)
     return querySnapshot.docs.map((doc) => {
       const data = doc.data() as Omit<Product, 'id' | 'createdAt' | 'updatedAt'> & {
@@ -38,12 +45,12 @@ export async function getProducts(isActive: boolean = true): Promise<Product[]> 
         updatedAt?: unknown
       }
       return {
-      ...data,
-      id: doc.id,
-      createdAt: toDate(data.createdAt),
-      updatedAt: toDate(data.updatedAt),
-    }
-  })
+        ...data,
+        id: doc.id,
+        createdAt: toDate(data.createdAt),
+        updatedAt: toDate(data.updatedAt),
+      }
+    })
   } catch (error) {
     console.error('Error fetching products:', error)
     return []
@@ -55,7 +62,7 @@ export async function getProducts(isActive: boolean = true): Promise<Product[]> 
  */
 export async function getProduct(id: string): Promise<Product | null> {
   try {
-    const docRef = doc(db, 'products', id)
+    const docRef = doc(getDbOrThrow(), 'products', id)
     const docSnap = await getDoc(docRef)
 
     if (docSnap.exists()) {
@@ -82,7 +89,7 @@ export async function getProduct(id: string): Promise<Product | null> {
  */
 export async function createProduct(product: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
   try {
-    const docRef = await addDoc(productsCollection, {
+    const docRef = await addDoc(productsCollection(), {
       ...product,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -99,7 +106,7 @@ export async function createProduct(product: Omit<Product, 'id' | 'createdAt' | 
  */
 export async function updateProduct(id: string, updates: Partial<Product>): Promise<void> {
   try {
-    const docRef = doc(db, 'products', id)
+    const docRef = doc(getDbOrThrow(), 'products', id)
     await updateDoc(docRef, {
       ...updates,
       updatedAt: new Date(),
@@ -115,7 +122,7 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
  */
 export async function deleteProduct(id: string): Promise<void> {
   try {
-    const docRef = doc(db, 'products', id)
+    const docRef = doc(getDbOrThrow(), 'products', id)
     await deleteDoc(docRef)
   } catch (error) {
     console.error('Error deleting product:', error)

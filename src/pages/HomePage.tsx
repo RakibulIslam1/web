@@ -3,6 +3,7 @@ import { Product } from '../types'
 import { getProducts } from '../services/productsService'
 import FloatingProductsCanvas from '../components/FloatingProductsCanvas'
 import ProductModal from '../components/ProductModal'
+import { firebaseConfigError } from '../firebase'
 
 /**
  * Home page with floating products canvas
@@ -55,12 +56,24 @@ export const HomePage: React.FC = () => {
     )
   }
 
+  if (firebaseConfigError) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-dark px-6">
+        <div className="text-center max-w-2xl">
+          <div className="text-4xl font-bold text-white mb-4">GUFRAM</div>
+          <div className="text-yellow-300 mb-3">Firebase is not configured on this deployment.</div>
+          <div className="text-gray-400 text-sm break-words">{firebaseConfigError}</div>
+        </div>
+      </div>
+    )
+  }
+
   if (products.length === 0) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-dark">
         <div className="text-center">
           <div className="text-4xl font-bold text-white mb-4">GUFRAM</div>
-          <div className="text-gray-400">No products available</div>
+          <div className="text-gray-400">No products available (check Firestore data and rules)</div>
         </div>
       </div>
     )

@@ -6,12 +6,17 @@ import {
 } from 'firebase/storage'
 import { storage } from '../firebase'
 
+function getStorageOrThrow() {
+  if (!storage) throw new Error('Firebase Storage is not configured')
+  return storage
+}
+
 /**
  * Upload a file to Firebase Storage
  */
 export async function uploadFile(file: File, path: string): Promise<string> {
   try {
-    const storageRef = ref(storage, path)
+    const storageRef = ref(getStorageOrThrow(), path)
     await uploadBytes(storageRef, file)
     const downloadUrl = await getDownloadURL(storageRef)
     return downloadUrl
@@ -26,7 +31,7 @@ export async function uploadFile(file: File, path: string): Promise<string> {
  */
 export async function deleteFile(path: string): Promise<void> {
   try {
-    const fileRef = ref(storage, path)
+    const fileRef = ref(getStorageOrThrow(), path)
     await deleteObject(fileRef)
   } catch (error) {
     console.error('Error deleting file:', error)
