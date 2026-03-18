@@ -67,7 +67,8 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
       cycle === 0 ? 10 + ((slotIndex * 11 + cycle * 7) % 70) : (slotIndex + cycle) % 8
 
     return {
-      id: `${product.id}-${slotIndex}-${cycle}`,
+      // Keep key stable across cycles so images do not remount/flash on fast respawns.
+      id: `${product.id}-${slotIndex}`,
       slotIndex,
       cycle,
       x: center.x,
@@ -114,7 +115,7 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
             let newAge = obj.age + 1
 
             // Auto-zoom slowly; scroll increases speed proportionally
-            const speedBoost = Math.max(0, scrollSpeedRef.current)
+            const speedBoost = Math.max(0, Math.min(2.8, scrollSpeedRef.current))
             const zoomSpeed = obj.velocityZ * (1 + speedBoost * 2.6)
             const moveSpeed = 0.9 + speedBoost * 3.6
 
@@ -134,7 +135,9 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
             }
 
             // Grow depth from center, then accelerate outward with scroll
-            newTravel += moveSpeed * (0.8 + newScale * 1.2)
+            // Clamp movement step to avoid frame skipping when user scrolls very fast.
+            const travelStep = Math.min(9, moveSpeed * (0.8 + newScale * 1.2))
+            newTravel += travelStep
 
             const center = getCenterPosition()
             newX = center.x + obj.directionX * newTravel
@@ -197,7 +200,7 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
     if (isPausedRef.current) return
 
     // Accumulate positive scroll for acceleration and allow upward scroll to reduce speed
-    scrollSpeedRef.current = Math.max(0, Math.min(6, scrollSpeedRef.current + e.deltaY * 0.006))
+    scrollSpeedRef.current = Math.max(0, Math.min(3.2, scrollSpeedRef.current + e.deltaY * 0.0032))
     setScrollSpeed(scrollSpeedRef.current)
   }
 
