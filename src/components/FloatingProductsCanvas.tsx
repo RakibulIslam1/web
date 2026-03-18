@@ -3,6 +3,8 @@ import { Product } from '../types'
 
 interface FloatingProduct {
   id: string
+  slotIndex: number
+  cycle: number
   x: number
   y: number
   scale: number
@@ -48,22 +50,24 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
     y: window.innerHeight / 2 - PRODUCT_SIZE / 2,
   })
 
-  const createFloatingProduct = (product: Product, index?: number, total?: number): FloatingProduct => {
+  const createFloatingProduct = (
+    product: Product,
+    slotIndex: number,
+    total: number,
+    cycle = 0
+  ): FloatingProduct => {
     const center = getCenterPosition()
-    // Always use index-based distribution; if not provided, generate one based on product ID hash
-    let angle: number
-    if (typeof index === 'number' && typeof total === 'number' && total > 0) {
-      angle = (index / total) * Math.PI * 2 + (Math.random() - 0.5) * 0.35
-    } else {
-      // Fallback: use product ID to generate consistent but unique angle for recycled products
-      const idHash = product.id.charCodeAt(0) + product.id.charCodeAt(Math.min(1, product.id.length - 1))
-      angle = ((idHash % 12) / 12) * Math.PI * 2 + (Math.random() - 0.5) * 0.35
-    }
+    const safeTotal = Math.max(1, total)
+    const angle = (slotIndex / safeTotal) * Math.PI * 2 + (Math.random() - 0.5) * 0.2
     const directionX = Math.cos(angle)
     const directionY = Math.sin(angle)
+    // Deterministic delay per slot keeps launch staggering stable across infinite loops.
+    const launchDelay = 10 + ((slotIndex * 11 + cycle * 7) % 70)
 
     return {
-      id: product.id,
+      id: `${product.id}-${slotIndex}-${cycle}`,
+      slotIndex,
+      cycle,
       x: center.x,
       y: center.y,
       scale: 0.08 + Math.random() * 0.04,
@@ -74,7 +78,7 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
       directionY,
       travel: 0,
       age: 0,
-      launchDelay: 10 + Math.floor(Math.random() * 70),
+      launchDelay,
       product,
     }
   }
@@ -83,7 +87,7 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
   useEffect(() => {
     if (products.length === 0) return
 
-    const initialized = products.map((product, index) => createFloatingProduct(product, index, products.length))
+    const initialized = products.map((product, index) => createFloatingProduct(product, index, products.length, 0))
 
     setFloatingProducts(initialized)
   }, [products])
@@ -151,7 +155,7 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
 
             // Reset only after object exits frame, maintaining index-based distribution
             if (outOfFrame) {
-              return createFloatingProduct(obj.product, idx, prevProducts.length)
+              return createFloatingProduct(obj.product, obj.slotIndex, prevProducts.length, obj.cycle + 1)
             }
 
             return {
@@ -246,7 +250,7 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
           onMouseLeave={handleMouseLeave}
         >
           <div
-            className="w-48 h-48 cursor-pointer transition-transform duration-200 hover:scale-110"
+            className="w-48 h-48 cursor-pointer transition-opacity duration-150 hover:opacity-90"
             style={{
               transform: `scale(${obj.scale})`,
               transformOrigin: 'center',
