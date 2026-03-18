@@ -221,8 +221,8 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
     onProductClick(product)
   }
 
-  const handleMouseEnter = (product: Product) => {
-    setHoveredProductId(product.id)
+  const handleMouseEnter = (floatingId: string, product: Product) => {
+    setHoveredProductId(floatingId)
     onProductHover?.(product)
   }
 
@@ -248,7 +248,7 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
             zIndex: Math.floor(obj.scale * 100),
           }}
           onClick={() => handleProductClick(obj.product)}
-          onMouseEnter={() => handleMouseEnter(obj.product)}
+          onMouseEnter={() => handleMouseEnter(obj.id, obj.product)}
           onMouseLeave={handleMouseLeave}
         >
           <div
