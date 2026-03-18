@@ -2,8 +2,50 @@ import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Product, Variation } from '../../types'
 import { getProduct, createProduct, updateProduct, deleteProduct } from '../../services/productsService'
-import { uploadProductImage } from '../../services/storageService'
 import Navigation from '../../components/Navigation'
+
+const MAX_UPLOAD_BYTES = 850_000
+
+async function fileToFirestoreImageData(file: File): Promise<string> {
+  const sourceDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(new Error('Failed to read image file'))
+    reader.readAsDataURL(file)
+  })
+
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('Invalid image file'))
+    img.src = sourceDataUrl
+  })
+
+  const maxDimension = 1200
+  const ratio = Math.min(1, maxDimension / Math.max(image.width, image.height))
+  const targetWidth = Math.max(1, Math.round(image.width * ratio))
+  const targetHeight = Math.max(1, Math.round(image.height * ratio))
+
+  const canvas = document.createElement('canvas')
+  canvas.width = targetWidth
+  canvas.height = targetHeight
+
+  const context = canvas.getContext('2d')
+  if (!context) {
+    throw new Error('Could not process image')
+  }
+
+  context.drawImage(image, 0, 0, targetWidth, targetHeight)
+
+  const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.78)
+  const estimatedBytes = Math.ceil((jpegDataUrl.length * 3) / 4)
+
+  if (estimatedBytes > MAX_UPLOAD_BYTES) {
+    throw new Error('Image is too large for Firestore document. Use a smaller image.')
+  }
+
+  return jpegDataUrl
+}
 
 /**
  * Admin product form for creating/editing products
@@ -73,8 +115,7 @@ export const AdminProductFormPage: React.FC = () => {
     setUploadError('')
     setUploadingImage(true)
     try {
-      const uploadId = isEditMode ? productId! : `new-${Date.now()}`
-      const imageUrl = await uploadProductImage(file, uploadId)
+      const imageUrl = await fileToFirestoreImageData(file)
       setProduct((prev) => ({
         ...prev,
         imageUrl,
@@ -84,7 +125,7 @@ export const AdminProductFormPage: React.FC = () => {
       console.error('Error uploading image:', error)
       const message = error instanceof Error ? error.message : 'Unknown upload error'
       setUploadError(message)
-      alert(`Failed to upload image: ${message}`)
+      alert(`Failed to process image: ${message}`)
     } finally {
       setUploadingImage(false)
       e.target.value = ''
@@ -217,7 +258,7 @@ export const AdminProductFormPage: React.FC = () => {
                   placeholder="https://example.com/product-image.jpg"
                   className="w-full px-4 py-2 bg-dark border border-gray-600 rounded text-white focus:outline-none focus:border-white transition"
                 />
-                <p className="text-xs text-gray-500 mt-2">You can upload from your device or use a direct URL.</p>
+                <p className="text-xs text-gray-500 mt-2">Uploaded files are converted and stored inside Firestore product data.</p>
               </div>
             </div>
           </div>
