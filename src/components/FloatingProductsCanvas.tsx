@@ -9,8 +9,9 @@ interface FloatingProduct {
   opacity: number
   velocityZ: number
   baseScale: number
-  driftX: number
-  driftY: number
+  directionX: number
+  directionY: number
+  travel: number
   product: Product
 }
 
@@ -45,18 +46,20 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
   const createFloatingProduct = (product: Product): FloatingProduct => {
     const center = getCenterPosition()
     const angle = Math.random() * Math.PI * 2
-    const driftMagnitude = 0.8 + Math.random() * 0.9
+    const directionX = Math.cos(angle)
+    const directionY = Math.sin(angle)
 
     return {
       id: product.id,
       x: center.x,
       y: center.y,
-      scale: 0.18 + Math.random() * 0.08,
-      opacity: 1,
+      scale: 0.08 + Math.random() * 0.04,
+      opacity: 0.28,
       velocityZ: 0.004 + Math.random() * 0.004,
-      baseScale: 0.18 + Math.random() * 0.08,
-      driftX: Math.cos(angle) * driftMagnitude,
-      driftY: Math.sin(angle) * driftMagnitude,
+      baseScale: 0.08 + Math.random() * 0.04,
+      directionX,
+      directionY,
+      travel: 0,
       product,
     }
   }
@@ -79,20 +82,30 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
           let newOpacity = obj.opacity
           let newX = obj.x
           let newY = obj.y
+          let newTravel = obj.travel
 
           // Auto-zoom slowly; scroll increases speed proportionally
           const speedBoost = Math.max(0, scrollSpeedRef.current)
           const zoomSpeed = obj.velocityZ * (1 + speedBoost * 2.6)
-          const moveSpeed = 0.85 + speedBoost * 3.5
+          const moveSpeed = 0.9 + speedBoost * 3.6
 
           newScale += zoomSpeed
-          newX += obj.driftX * moveSpeed
-          newY += obj.driftY * moveSpeed
+
+          // Grow depth from center, then accelerate outward with scroll
+          newTravel += moveSpeed * (0.8 + newScale * 1.2)
+
+          const center = getCenterPosition()
+          newX = center.x + obj.directionX * newTravel
+          newY = center.y + obj.directionY * newTravel
 
           const edgeDistanceX = Math.min(newX + PRODUCT_SIZE, window.innerWidth - newX)
           const edgeDistanceY = Math.min(newY + PRODUCT_SIZE, window.innerHeight - newY)
           const edgeDistance = Math.min(edgeDistanceX, edgeDistanceY)
-          newOpacity = Math.max(0.35, Math.min(1, edgeDistance / 220))
+
+          // Fade in from center-back, then fade as leaving frame
+          const fadeIn = Math.min(1, newTravel / 110)
+          const fadeOut = Math.max(0.2, Math.min(1, edgeDistance / 220))
+          newOpacity = Math.min(fadeIn, fadeOut)
 
           const outOfFrame =
             newX > window.innerWidth + PRODUCT_SIZE ||
@@ -111,6 +124,7 @@ export const FloatingProductsCanvas: React.FC<FloatingProductsCanvasProps> = ({
             y: newY,
             scale: newScale,
             opacity: newOpacity,
+            travel: newTravel,
           }
         })
       )
