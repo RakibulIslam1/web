@@ -3,6 +3,7 @@ node_modules/
 .env.*.local
 dist/
 dist-ssr/
+.tsbuild/
 *.local
 .DS_Store
 .vscode/*
