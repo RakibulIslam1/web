@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { Product, Variation } from '../../types'
 import { getProduct, createProduct, updateProduct } from '../../services/productsService'
-import { uploadProductImage } from '../../services/storageService'
 import Navigation from '../../components/Navigation'
 
 /**
@@ -27,7 +26,6 @@ export const AdminProductFormPage: React.FC = () => {
     isActive: true,
   })
 
-  const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>('')
   const [loading, setLoading] = useState(isEditMode)
   const [saving, setSaving] = useState(false)
@@ -59,18 +57,6 @@ export const AdminProductFormPage: React.FC = () => {
     loadProduct()
   }, [isEditMode, productId])
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setImageFile(file)
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement
     const finalValue = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
@@ -78,6 +64,10 @@ export const AdminProductFormPage: React.FC = () => {
       ...prev,
       [name]: name === 'price' ? parseFloat(value) : finalValue,
     }))
+
+    if (name === 'imageUrl') {
+      setImagePreview(value)
+    }
   }
 
   const handleAddVariation = () => {
@@ -118,17 +108,8 @@ export const AdminProductFormPage: React.FC = () => {
     setSaving(true)
 
     try {
-      let imageUrl = product.imageUrl
-
-      // Upload image if selected
-      if (imageFile) {
-        const tempId = isEditMode ? productId : 'new-' + Date.now()
-        imageUrl = await uploadProductImage(imageFile, tempId)
-      }
-
       const productData = {
         ...product,
-        imageUrl,
       } as Omit<Product, 'id' | 'createdAt' | 'updatedAt'>
 
       if (isEditMode) {
@@ -167,7 +148,7 @@ export const AdminProductFormPage: React.FC = () => {
         </h1>
 
         <form onSubmit={handleSubmit} className="bg-slate rounded-lg p-8 space-y-6">
-          {/* Image */}
+          {/* Image URL */}
           <div>
             <label className="block text-lg font-semibold text-white mb-3">Product Image</label>
             <div className="flex flex-col sm:flex-row gap-6">
@@ -180,12 +161,14 @@ export const AdminProductFormPage: React.FC = () => {
               </div>
               <div className="flex-1">
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="block w-full text-sm text-gray-400 file:mr-4 file:mb-4 file:px-4 file:py-2 file:bg-white file:text-black file:font-semibold file:rounded"
+                  type="url"
+                  name="imageUrl"
+                  value={product.imageUrl || ''}
+                  onChange={handleInputChange}
+                  placeholder="https://example.com/product-image.jpg"
+                  className="w-full px-4 py-2 bg-dark border border-gray-600 rounded text-white focus:outline-none focus:border-white transition"
                 />
-                <p className="text-xs text-gray-500 mt-2">PNG or JPG, max 5MB</p>
+                <p className="text-xs text-gray-500 mt-2">Use a public image URL (Firestore only, no Storage upload)</p>
               </div>
             </div>
           </div>
