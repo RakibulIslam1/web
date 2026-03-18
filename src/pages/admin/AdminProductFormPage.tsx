@@ -29,6 +29,7 @@ export const AdminProductFormPage: React.FC = () => {
   const [loading, setLoading] = useState(isEditMode)
   const [saving, setSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [uploadError, setUploadError] = useState<string>('')
   const [deletingProduct, setDeletingProduct] = useState(false)
 
   // Load product if editing
@@ -69,6 +70,7 @@ export const AdminProductFormPage: React.FC = () => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    setUploadError('')
     setUploadingImage(true)
     try {
       const uploadId = isEditMode ? productId! : `new-${Date.now()}`
@@ -80,7 +82,9 @@ export const AdminProductFormPage: React.FC = () => {
       setImagePreview(imageUrl)
     } catch (error) {
       console.error('Error uploading image:', error)
-      alert('Failed to upload image. Check Firebase Storage rules/configuration.')
+      const message = error instanceof Error ? error.message : 'Unknown upload error'
+      setUploadError(message)
+      alert(`Failed to upload image: ${message}`)
     } finally {
       setUploadingImage(false)
       e.target.value = ''
@@ -202,6 +206,7 @@ export const AdminProductFormPage: React.FC = () => {
                   className="w-full mb-3 px-4 py-2 bg-dark border border-gray-600 rounded text-gray-300 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:bg-white file:text-black file:font-semibold"
                 />
                 {uploadingImage && <p className="text-xs text-yellow-300 mb-3">Uploading image...</p>}
+                {uploadError && <p className="text-xs text-red-400 mb-3">{uploadError}</p>}
 
                 <label className="block text-xs font-semibold text-gray-400 mb-2">Or paste image URL</label>
                 <input

@@ -1,4 +1,4 @@
-import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
+import { deleteObject, getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage'
 import { storage } from '../firebase'
 
 function getStorageOrThrow() {
@@ -8,12 +8,35 @@ function getStorageOrThrow() {
   return storage
 }
 
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(message)), timeoutMs)
+    }),
+  ])
+}
+
 /**
  * Upload a file to Firebase Storage
  */
 export async function uploadFile(file: File, path: string): Promise<string> {
   const storageRef = ref(getStorageOrThrow(), path)
-  await uploadBytes(storageRef, file)
+  const uploadTask = uploadBytesResumable(storageRef, file)
+
+  await withTimeout(
+    new Promise<void>((resolve, reject) => {
+      uploadTask.on(
+        'state_changed',
+        undefined,
+        (error) => reject(error),
+        () => resolve()
+      )
+    }),
+    20000,
+    'Upload timed out after 20 seconds. Check Storage bucket config and rules.'
+  )
+
   return getDownloadURL(storageRef)
 }
 
