@@ -1,12 +1,14 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 /**
  * Auth page for sign in and sign up
  */
 export const AuthPage: React.FC = () => {
-  const [isSignUp, setIsSignUp] = useState(false)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const modeParam = searchParams.get('mode')
+  const [isSignUp, setIsSignUp] = useState(modeParam === 'signup')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -116,7 +118,9 @@ export const AuthPage: React.FC = () => {
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button
               onClick={() => {
-                setIsSignUp(!isSignUp)
+                const nextIsSignUp = !isSignUp
+                setIsSignUp(nextIsSignUp)
+                setSearchParams({ mode: nextIsSignUp ? 'signup' : 'signin' })
                 setError('')
               }}
               className="text-white font-semibold hover:underline"
